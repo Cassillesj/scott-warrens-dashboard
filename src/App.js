@@ -29,25 +29,38 @@ const Avatar = ({ player, size = 'md', showBorder = true }) => {
   
   const color = PLAYER_COLORS[player?.toLowerCase()] || '#666';
   const playerId = player?.toLowerCase();
-  const avatarUrl = `/avatars/${playerId}.png`;
+  const avatarUrl = '/avatars/' + playerId + '.png';
+  const initials = player ? player.substring(0, 2).toUpperCase() : '??';
+  const [imgError, setImgError] = React.useState(false);
+  
+  if (imgError) {
+    return (
+      <div 
+        className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white`}
+        style={{ 
+          backgroundColor: color,
+          border: showBorder ? `3px solid ${color}` : 'none',
+          boxShadow: showBorder ? '0 0 0 2px #1a1a24' : 'none'
+        }}
+      >
+        {initials}
+      </div>
+    );
+  }
   
   return (
     <div 
       className={`${sizes[size]} rounded-full overflow-hidden`}
       style={{ 
         border: showBorder ? `3px solid ${color}` : 'none',
-        boxShadow: showBorder ? `0 0 0 2px #1a1a24` : 'none'
+        boxShadow: showBorder ? '0 0 0 2px #1a1a24' : 'none'
       }}
     >
       <img 
         src={avatarUrl} 
         alt={player}
         className="w-full h-full object-cover"
-        onError={(e) => {
-          e.target.style.display = 'none';
-          e.target.parentNode.style.backgroundColor = color;
-          e.target.parentNode.innerHTML = `<span class="flex items-center justify-center w-full h-full text-white font-bold">${player?.substring(0,2).toUpperCase() || '??'}</span>`;
-        }}
+        onError={() => setImgError(true)}
       />
     </div>
   );
