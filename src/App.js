@@ -988,10 +988,9 @@ function ScottWarrensDashboard() {
 
             <section className="bg-gradient-to-r from-amber-900 to-red-900 rounded-xl p-6 border border-red-700">
               <h2 className="text-xl font-bold mb-4">💩 The Loser's Punishment</h2>
-              <p className="text-lg mb-4">The player in LAST PLACE at the end of 2026 must endure:</p>
+              <p className="text-lg mb-4">The player who comes LAST in each challenge must endure:</p>
               <div className="bg-gray-900 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-red-400 mb-2">100ml - 500ml of LIQUID FART SPRAY</p>
-                <p className="text-gray-300">Quantity decided by THE WINNER 🏆</p>
+                <p className="text-2xl font-bold text-red-400 mb-2">100ml of LIQUID FART SPRAY</p>
               </div>
               <p className="text-center mt-4 italic text-gray-400">"May the odds be ever in your favour. And the smell be ever not on you."</p>
             </section>
