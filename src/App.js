@@ -12,8 +12,13 @@ var PLAYER_COLORS = {
 var SCORING_ICONS = {
   highest: '🎯',
   lowest: '⛳',
-  fastest: '⚡',
-  closest: '🎲'
+  fastest: '⚡'
+};
+
+var SCORING_LABELS = {
+  highest: 'Highest Score Wins',
+  lowest: 'Lowest Score Wins',
+  fastest: 'Fastest Time Wins'
 };
 
 function Avatar(props) {
@@ -36,8 +41,8 @@ function Avatar(props) {
     <div 
       className={sizeClasses[size] + ' rounded-full overflow-hidden'}
       style={{ 
-        border: showBorder ? '3px solid ' + color : 'none',
-        boxShadow: showBorder ? '0 0 0 2px #1a1a24' : 'none'
+        border: showBorder ? '2px solid ' + color : 'none',
+        boxShadow: showBorder ? '0 0 0 1px #1a1a24' : 'none'
       }}
     >
       <img 
@@ -115,6 +120,335 @@ function getRankDisplay(rank, totalPlayers) {
   return rank.toString();
 }
 
+function CreateChallengeModal(props) {
+  var players = props.players;
+  var onClose = props.onClose;
+  var onCreated = props.onCreated;
+  
+  var [title, setTitle] = useState('');
+  var [description, setDescription] = useState('');
+  var [rules, setRules] = useState('');
+  var [scoringType, setScoringType] = useState('highest');
+  var [hostId, setHostId] = useState('');
+  var [isTurns, setIsTurns] = useState(false);
+  var [gameName, setGameName] = useState('');
+  var [loading, setLoading] = useState(false);
+  var [error, setError] = useState('');
+  
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!title || !description || !rules || !hostId) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    var result = await supabase
+      .from('challenges')
+      .insert({
+        name: title,
+        description: description,
+        rules: rules,
+        created_by: hostId,
+        scoring_type: scoringType,
+        is_turns: isTurns,
+        game_name: gameName || null,
+        status: 'active'
+      })
+      .select()
+      .single();
+    
+    if (result.error) {
+      setError('Failed to create challenge: ' + result.error.message);
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(false);
+    onCreated();
+    onClose();
+  }
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Create New Challenge</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
+        </div>
+        
+        {error && <div className="bg-red-900 text-red-200 p-3 rounded mb-4">{error}</div>}
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Host *</label>
+            <select 
+              value={hostId} 
+              onChange={function(e) { setHostId(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+            >
+              <option value="">Select host...</option>
+              {players.map(function(p) {
+                return <option key={p.id} value={p.id}>{p.name}</option>;
+              })}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Challenge Title *</label>
+            <input 
+              type="text"
+              value={title}
+              onChange={function(e) { setTitle(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+              placeholder="e.g. Pokemon Speedrun"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Description *</label>
+            <textarea 
+              value={description}
+              onChange={function(e) { setDescription(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white h-20"
+              placeholder="What is this challenge about?"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Rules *</label>
+            <textarea 
+              value={rules}
+              onChange={function(e) { setRules(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white h-20"
+              placeholder="List the rules..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Scoring Type *</label>
+            <select 
+              value={scoringType} 
+              onChange={function(e) { setScoringType(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+            >
+              <option value="highest">🎯 Highest Score Wins</option>
+              <option value="lowest">⛳ Lowest Score Wins</option>
+              <option value="fastest">⚡ Fastest Time Wins</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Game Name (optional)</label>
+            <input 
+              type="text"
+              value={gameName}
+              onChange={function(e) { setGameName(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+              placeholder="e.g. Pokemon Red/Blue"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input 
+              type="checkbox"
+              id="isTurns"
+              checked={isTurns}
+              onChange={function(e) { setIsTurns(e.target.checked); }}
+              className="w-4 h-4"
+            />
+            <label htmlFor="isTurns" className="text-sm text-gray-300">⚔️ This is a TURNS/Warhammer challenge</label>
+          </div>
+          
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 rounded"
+          >
+            {loading ? 'Creating...' : 'Create Challenge'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function SubmitScoreModal(props) {
+  var challenges = props.challenges;
+  var players = props.players;
+  var onClose = props.onClose;
+  var onSubmitted = props.onSubmitted;
+  
+  var [challengeId, setChallengeId] = useState('');
+  var [playerId, setPlayerId] = useState('');
+  var [score, setScore] = useState('');
+  var [loading, setLoading] = useState(false);
+  var [error, setError] = useState('');
+  
+  var selectedChallenge = challenges.find(function(c) { return c.id === challengeId; });
+  var availablePlayers = players.filter(function(p) {
+    if (!selectedChallenge) return true;
+    if (selectedChallenge.created_by === p.id) return false;
+    var submitted = (selectedChallenge.submissions || []).map(function(s) { return s.player_id; });
+    return !submitted.includes(p.id);
+  });
+  
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!challengeId || !playerId || !score) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    var result = await supabase
+      .from('submissions')
+      .insert({
+        challenge_id: challengeId,
+        player_id: playerId,
+        score: parseFloat(score)
+      });
+    
+    if (result.error) {
+      setError('Failed to submit: ' + result.error.message);
+      setLoading(false);
+      return;
+    }
+    
+    // Check submission count and update timer
+    var subsResult = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('challenge_id', challengeId);
+    
+    var count = subsResult.data ? subsResult.data.length : 0;
+    
+    if (count >= 2) {
+      var days = 30;
+      if (count >= 4) days = 14;
+      else if (count >= 3) days = 21;
+      
+      var deadline = new Date();
+      deadline.setDate(deadline.getDate() + days);
+      
+      var challenge = challenges.find(function(c) { return c.id === challengeId; });
+      if (!challenge.timer_start) {
+        await supabase
+          .from('challenges')
+          .update({
+            timer_start: new Date().toISOString(),
+            timer_deadline: deadline.toISOString()
+          })
+          .eq('id', challengeId);
+      }
+    }
+    
+    // Check if all 5 submitted (4 players + host doesn't submit)
+    if (count === 4) {
+      // Complete the challenge
+      var allSubs = subsResult.data;
+      var challengeData = challenges.find(function(c) { return c.id === challengeId; });
+      
+      // Sort by score
+      var sorted = allSubs.slice().sort(function(a, b) {
+        if (challengeData.scoring_type === 'highest') return b.score - a.score;
+        return a.score - b.score;
+      });
+      
+      // Create results
+      for (var i = 0; i < sorted.length; i++) {
+        await supabase.from('results').insert({
+          challenge_id: challengeId,
+          player_id: sorted[i].player_id,
+          rank: i + 1,
+          score: sorted[i].score,
+          points: 5 - i
+        });
+      }
+      
+      await supabase
+        .from('challenges')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', challengeId);
+    }
+    
+    setLoading(false);
+    onSubmitted();
+    onClose();
+  }
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Submit Score</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
+        </div>
+        
+        {error && <div className="bg-red-900 text-red-200 p-3 rounded mb-4">{error}</div>}
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Challenge *</label>
+            <select 
+              value={challengeId} 
+              onChange={function(e) { setChallengeId(e.target.value); setPlayerId(''); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+            >
+              <option value="">Select challenge...</option>
+              {challenges.map(function(c) {
+                return <option key={c.id} value={c.id}>{SCORING_ICONS[c.scoring_type]} {c.name}</option>;
+              })}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Player *</label>
+            <select 
+              value={playerId} 
+              onChange={function(e) { setPlayerId(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+              disabled={!challengeId}
+            >
+              <option value="">Select player...</option>
+              {availablePlayers.map(function(p) {
+                return <option key={p.id} value={p.id}>{p.name}</option>;
+              })}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Score *</label>
+            <input 
+              type="number"
+              step="any"
+              value={score}
+              onChange={function(e) { setScore(e.target.value); }}
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"
+              placeholder="Enter your score"
+            />
+          </div>
+          
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-3 rounded"
+          >
+            {loading ? 'Submitting...' : 'Submit Score'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function ScottWarrensDashboard() {
   var [activeTab, setActiveTab] = useState('dashboard');
   var [soLuckyMode, setSoLuckyMode] = useState(false);
@@ -122,27 +456,20 @@ function ScottWarrensDashboard() {
   var [players, setPlayers] = useState([]);
   var [activeChallenges, setActiveChallenges] = useState([]);
   var [completedChallenges, setCompletedChallenges] = useState([]);
+  var [showCreateModal, setShowCreateModal] = useState(false);
+  var [showSubmitModal, setShowSubmitModal] = useState(false);
 
-  useEffect(function() {
-    async function fetchData() {
-      setLoading(true);
-      
-      var playersResult = await supabase.from('players').select('*');
-      var playersData = playersResult.data;
-      
-      var activeResult = await supabase
-        .from('challenges')
-        .select('*, submissions(*)')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-      var activeData = activeResult.data;
-      
-      var completedResult = await supabase
-        .from('challenges')
-        .select('*, results(*)')
-        .eq('status', 'completed')
-        .order('completed_at', { ascending: false });
-      var completedData = completedResult.data;
+  function fetchData() {
+    setLoading(true);
+    
+    Promise.all([
+      supabase.from('players').select('*'),
+      supabase.from('challenges').select('*, submissions(*)').eq('status', 'active').order('created_at', { ascending: false }),
+      supabase.from('challenges').select('*, results(*)').eq('status', 'completed').order('completed_at', { ascending: false })
+    ]).then(function(results) {
+      var playersData = results[0].data;
+      var activeData = results[1].data;
+      var completedData = results[2].data;
       
       var standings = {};
       var wins = {};
@@ -179,8 +506,10 @@ function ScottWarrensDashboard() {
       setActiveChallenges(activeData || []);
       setCompletedChallenges(completedData || []);
       setLoading(false);
-    }
-    
+    });
+  }
+
+  useEffect(function() {
     fetchData();
     
     var subscription = supabase
@@ -218,6 +547,9 @@ function ScottWarrensDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {showCreateModal && <CreateChallengeModal players={players} onClose={function() { setShowCreateModal(false); }} onCreated={fetchData} />}
+      {showSubmitModal && <SubmitScoreModal challenges={activeChallenges} players={players} onClose={function() { setShowSubmitModal(false); }} onSubmitted={fetchData} />}
+      
       <header className="bg-gray-800 border-b border-gray-700 p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
@@ -225,17 +557,31 @@ function ScottWarrensDashboard() {
             <p className="text-gray-400 text-sm">2026 Year of Challenges</p>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400">Full</span>
+          <div className="flex items-center gap-4">
             <button
-              onClick={function() { setSoLuckyMode(!soLuckyMode); }}
-              className={soLuckyMode ? 'relative w-14 h-7 rounded-full transition-all bg-purple-600' : 'relative w-14 h-7 rounded-full transition-all bg-gray-600'}
+              onClick={function() { setShowCreateModal(true); }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium"
             >
-              <div className={soLuckyMode ? 'absolute top-1 w-5 h-5 rounded-full bg-white transition-all left-8' : 'absolute top-1 w-5 h-5 rounded-full bg-white transition-all left-1'} />
+              + New Challenge
             </button>
-            <span className={soLuckyMode ? 'text-sm font-bold text-purple-400' : 'text-sm font-bold text-gray-400'}>
-              🍀 So Lucky
-            </span>
+            <button
+              onClick={function() { setShowSubmitModal(true); }}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium"
+            >
+              Submit Score
+            </button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-400">Full</span>
+              <button
+                onClick={function() { setSoLuckyMode(!soLuckyMode); }}
+                className={soLuckyMode ? 'relative w-14 h-7 rounded-full transition-all bg-purple-600' : 'relative w-14 h-7 rounded-full transition-all bg-gray-600'}
+              >
+                <div className={soLuckyMode ? 'absolute top-1 w-5 h-5 rounded-full bg-white transition-all left-8' : 'absolute top-1 w-5 h-5 rounded-full bg-white transition-all left-1'} />
+              </button>
+              <span className={soLuckyMode ? 'text-sm font-bold text-purple-400' : 'text-sm font-bold text-gray-400'}>
+                🍀 So Lucky
+              </span>
+            </div>
           </div>
         </div>
         
@@ -372,7 +718,7 @@ function ScottWarrensDashboard() {
             {filteredActiveChallenges.length === 0 && filteredCompletedChallenges.length === 0 && (
               <section className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
                 <p className="text-gray-400 text-lg">No challenges yet!</p>
-                <p className="text-gray-500 mt-2">Use /challenge in Discord to create the first one.</p>
+                <p className="text-gray-500 mt-2">Click "+ New Challenge" to create the first one.</p>
               </section>
             )}
           </div>
@@ -383,7 +729,7 @@ function ScottWarrensDashboard() {
             {filteredActiveChallenges.length === 0 ? (
               <section className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
                 <p className="text-gray-400 text-lg">No active challenges</p>
-                <p className="text-gray-500 mt-2">Use /challenge in Discord to create one.</p>
+                <p className="text-gray-500 mt-2">Click "+ New Challenge" to create one.</p>
               </section>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,6 +737,8 @@ function ScottWarrensDashboard() {
                   var hostColor = PLAYER_COLORS[challenge.created_by];
                   var allPlayers = ['triggz', 'tyrillis', 'ivory', 'scumby', 'adz'];
                   var submittedPlayers = (challenge.submissions || []).map(function(s) { return s.player_id; });
+                  var playersToShow = allPlayers.filter(function(p) { return p !== challenge.created_by; });
+                  
                   return (
                     <div key={challenge.id} className="rounded-xl overflow-hidden relative" style={{ border: '2px solid ' + hostColor, boxShadow: '0 0 20px ' + hostColor + '40' }}>
                       <div className="h-2" style={{ backgroundColor: hostColor }} />
@@ -407,7 +755,7 @@ function ScottWarrensDashboard() {
                           <div className="text-sm whitespace-pre-line">{challenge.rules}</div>
                         </div>
                         <div className="flex justify-center gap-4 mb-4">
-                          {allPlayers.filter(function(p) { return p !== challenge.created_by; }).map(function(player) {
+                          {playersToShow.map(function(player) {
                             var hasSubmitted = submittedPlayers.includes(player);
                             if (hasSubmitted) {
                               return (
@@ -577,14 +925,14 @@ function ScottWarrensDashboard() {
                 <p>1. Each player hosts 1 challenge at a time (5 active challenges max)</p>
                 <p>2. Everyone submits their scores blind (hidden until complete)</p>
                 <p>3. Points awarded: 1st = 5pts, 2nd = 4pts, 3rd = 3pts, 4th = 2pts, 5th = 1pt</p>
-                <p>4. When all 5 submit OR timer expires, challenge completes</p>
+                <p>4. When all 4 non-hosts submit OR timer expires, challenge completes</p>
                 <p>5. Host can then create their next challenge</p>
               </div>
             </section>
 
             <section className="bg-gray-800 rounded-xl p-6 border border-gray-700">
               <h2 className="text-xl font-bold mb-4">🎯 Scoring Types</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-gray-700 p-4 rounded-lg">
                   <span className="text-2xl">🎯</span>
                   <h3 className="font-bold mt-2">Highest Score Wins</h3>
@@ -599,11 +947,6 @@ function ScottWarrensDashboard() {
                   <span className="text-2xl">⚡</span>
                   <h3 className="font-bold mt-2">Fastest Time Wins</h3>
                   <p className="text-gray-400 text-sm">Quickest completion wins</p>
-                </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <span className="text-2xl">🎲</span>
-                  <h3 className="font-bold mt-2">Closest to Target</h3>
-                  <p className="text-gray-400 text-sm">Nearest guess wins</p>
                 </div>
               </div>
             </section>
