@@ -39,7 +39,7 @@ function Avatar(props) {
   
   return (
     <div 
-      className={sizeClasses[size] + ' rounded-full overflow-hidden'}
+      className={sizeClasses[size] + ' rounded-full overflow-hidden flex-shrink-0'}
       style={{ 
         border: showBorder ? '2px solid ' + color : 'none',
         boxShadow: showBorder ? '0 0 0 1px #1a1a24' : 'none'
@@ -57,7 +57,7 @@ function Avatar(props) {
 function SilhouettePlaceholder(props) {
   return (
     <div className="flex flex-col items-center">
-      <div className="w-12 h-12 rounded-full bg-gray-700 border-2 border-dashed border-gray-500 flex items-center justify-center">
+      <div className="w-12 h-12 rounded-full bg-gray-700 border-2 border-dashed border-gray-500 flex items-center justify-center flex-shrink-0">
         <span className="text-gray-500 text-lg">?</span>
       </div>
       <span className="text-gray-500 text-xs mt-1 opacity-50">{props.name}</span>
@@ -118,6 +118,12 @@ function getRankDisplay(rank, totalPlayers) {
   if (rank === 3) return '🥉';
   if (isLast) return '💩';
   return rank.toString();
+}
+
+function formatRulesAsBullets(rules) {
+  if (!rules) return [];
+  var lines = rules.split('\n').filter(function(line) { return line.trim() !== ''; });
+  return lines;
 }
 
 function CreateChallengeModal(props) {
@@ -218,12 +224,12 @@ function CreateChallengeModal(props) {
           </div>
           
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Rules *</label>
+            <label className="block text-sm text-gray-400 mb-1">Rules * (one per line)</label>
             <textarea 
               value={rules}
               onChange={function(e) { setRules(e.target.value); }}
-              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white h-20"
-              placeholder="List the rules..."
+              className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white h-24"
+              placeholder="No speed modifiers&#10;Choose Charmander as starter&#10;No save states"
             />
           </div>
           
@@ -290,7 +296,6 @@ function SubmitScoreModal(props) {
   var selectedChallenge = challenges.find(function(c) { return c.id === challengeId; });
   var availablePlayers = players.filter(function(p) {
     if (!selectedChallenge) return true;
-    if (selectedChallenge.created_by === p.id) return false;
     var submitted = (selectedChallenge.submissions || []).map(function(s) { return s.player_id; });
     return !submitted.includes(p.id);
   });
@@ -347,8 +352,8 @@ function SubmitScoreModal(props) {
       }
     }
     
-    // Check if all 5 submitted (4 players + host doesn't submit)
-    if (count === 4) {
+    // Check if all 5 submitted
+    if (count === 5) {
       // Complete the challenge
       var allSubs = subsResult.data;
       var challengeData = challenges.find(function(c) { return c.id === challengeId; });
@@ -621,7 +626,7 @@ function ScottWarrensDashboard() {
                     var hostColor = PLAYER_COLORS[challenge.created_by];
                     var allPlayers = ['triggz', 'tyrillis', 'ivory', 'scumby', 'adz'];
                     var submittedPlayers = (challenge.submissions || []).map(function(s) { return s.player_id; });
-                    var missing = allPlayers.filter(function(p) { return !submittedPlayers.includes(p) && p !== challenge.created_by; });
+                    var missing = allPlayers.filter(function(p) { return !submittedPlayers.includes(p); });
                     return (
                       <div 
                         key={challenge.id}
@@ -737,25 +742,44 @@ function ScottWarrensDashboard() {
                   var hostColor = PLAYER_COLORS[challenge.created_by];
                   var allPlayers = ['triggz', 'tyrillis', 'ivory', 'scumby', 'adz'];
                   var submittedPlayers = (challenge.submissions || []).map(function(s) { return s.player_id; });
-                  var playersToShow = allPlayers.filter(function(p) { return p !== challenge.created_by; });
+                  var rulesList = formatRulesAsBullets(challenge.rules);
                   
                   return (
                     <div key={challenge.id} className="rounded-xl overflow-hidden relative" style={{ border: '2px solid ' + hostColor, boxShadow: '0 0 20px ' + hostColor + '40' }}>
                       <div className="h-2" style={{ backgroundColor: hostColor }} />
-                      <div className="relative p-4" style={{ backgroundColor: hostColor + '15' }}>
-                        <div className="absolute top-4 right-4"><Avatar player={challenge.created_by} size="lg" /></div>
-                        {challenge.is_turns && <div className="absolute top-4 left-4 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">⚔️ TURNS</div>}
-                        <div className="flex items-center gap-2 mb-2 pr-20">
-                          <span className="text-2xl">{SCORING_ICONS[challenge.scoring_type]}</span>
-                          <h3 className="font-bold text-lg">{challenge.name}</h3>
+                      <div className="p-4" style={{ backgroundColor: hostColor + '15' }}>
+                        {challenge.is_turns && <div className="inline-block bg-purple-600 text-white text-xs px-2 py-1 rounded-full mb-2">⚔️ TURNS</div>}
+                        
+                        <div className="flex items-start gap-4 mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-2xl">{SCORING_ICONS[challenge.scoring_type]}</span>
+                              <h3 className="font-bold text-lg">{challenge.name}</h3>
+                            </div>
+                            <p className="text-gray-300 text-sm">{challenge.description}</p>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <Avatar player={challenge.created_by} size="lg" />
+                            <span className="text-xs text-gray-400 mt-1">Host</span>
+                          </div>
                         </div>
-                        <p className="text-gray-300 text-sm mb-3">{challenge.description}</p>
+                        
                         <div className="bg-gray-900 rounded-lg p-3 mb-4">
-                          <div className="text-xs text-gray-400 mb-1">📋 RULES</div>
-                          <div className="text-sm whitespace-pre-line">{challenge.rules}</div>
+                          <div className="text-xs text-gray-400 mb-2">📋 RULES</div>
+                          <ul className="space-y-1">
+                            {rulesList.map(function(rule, idx) {
+                              return (
+                                <li key={idx} className="text-sm flex items-start gap-2">
+                                  <span className="text-gray-500">•</span>
+                                  <span>{rule}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
                         </div>
-                        <div className="flex justify-center gap-4 mb-4">
-                          {playersToShow.map(function(player) {
+                        
+                        <div className="flex justify-center gap-3 mb-4">
+                          {allPlayers.map(function(player) {
                             var hasSubmitted = submittedPlayers.includes(player);
                             if (hasSubmitted) {
                               return (
@@ -772,6 +796,7 @@ function ScottWarrensDashboard() {
                             }
                           })}
                         </div>
+                        
                         {challenge.timer_start && <div className="text-center"><TimerDisplay deadline={challenge.timer_deadline} /></div>}
                       </div>
                     </div>
@@ -923,9 +948,9 @@ function ScottWarrensDashboard() {
               <h2 className="text-xl font-bold mb-4">⚙️ How It Works</h2>
               <div className="space-y-3 text-gray-300">
                 <p>1. Each player hosts 1 challenge at a time (5 active challenges max)</p>
-                <p>2. Everyone submits their scores blind (hidden until complete)</p>
+                <p>2. Everyone submits their scores (including the host)</p>
                 <p>3. Points awarded: 1st = 5pts, 2nd = 4pts, 3rd = 3pts, 4th = 2pts, 5th = 1pt</p>
-                <p>4. When all 4 non-hosts submit OR timer expires, challenge completes</p>
+                <p>4. When all 5 submit OR timer expires, challenge completes</p>
                 <p>5. Host can then create their next challenge</p>
               </div>
             </section>
