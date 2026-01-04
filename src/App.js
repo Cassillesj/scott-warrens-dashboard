@@ -21,51 +21,29 @@ const SCORING_ICONS = {
 // Avatar component with colored ring
 const Avatar = ({ player, size = 'md', showBorder = true }) => {
   const sizes = {
-    sm: 'w-8 h-8',
-    md: 'w-12 h-12',
-    lg: 'w-16 h-16',
-    xl: 'w-24 h-24'
+    sm: 'w-8 h-8 text-xs',
+    md: 'w-12 h-12 text-sm',
+    lg: 'w-16 h-16 text-base',
+    xl: 'w-24 h-24 text-xl'
   };
   
   const color = PLAYER_COLORS[player?.toLowerCase()] || '#666';
-  const playerId = player?.toLowerCase();
-  const avatarUrl = '/avatars/' + playerId + '.png';
   const initials = player ? player.substring(0, 2).toUpperCase() : '??';
-  const [imgError, setImgError] = React.useState(false);
-  
-  if (imgError) {
-    return (
-      <div 
-        className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white`}
-        style={{ 
-          backgroundColor: color,
-          border: showBorder ? `3px solid ${color}` : 'none',
-          boxShadow: showBorder ? '0 0 0 2px #1a1a24' : 'none'
-        }}
-      >
-        {initials}
-      </div>
-    );
-  }
   
   return (
     <div 
-      className={`${sizes[size]} rounded-full overflow-hidden`}
+      className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white`}
       style={{ 
+        backgroundColor: color,
         border: showBorder ? `3px solid ${color}` : 'none',
-        boxShadow: showBorder ? '0 0 0 2px #1a1a24' : 'none'
+        boxShadow: showBorder ? `0 0 0 2px #1a1a24` : 'none'
       }}
     >
-      <img 
-        src={avatarUrl} 
-        alt={player}
-        className="w-full h-full object-cover"
-        onError={() => setImgError(true)}
-      />
+      {initials}
     </div>
   );
 };
-```
+
 // Silhouette placeholder for unsubmitted
 const SilhouettePlaceholder = ({ name }) => (
   <div className="flex flex-col items-center">
