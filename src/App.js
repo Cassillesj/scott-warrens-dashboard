@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import FoodTournament from './FoodTournament';
 
 var PLAYER_COLORS = {
   triggz: '#b91c1c',
@@ -563,6 +564,12 @@ function ScottWarrensDashboard() {
           </div>
           
           <div className="flex items-center gap-4">
+            <a
+              href="#dinner"
+              className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded font-medium"
+            >
+              Dinner Decider
+            </a>
             <button
               onClick={function() { setShowCreateModal(true); }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium"
@@ -1010,4 +1017,17 @@ function ScottWarrensDashboard() {
   );
 }
 
-export default ScottWarrensDashboard;
+function App() {
+  var [route, setRoute] = useState(window.location.hash);
+
+  useEffect(function() {
+    function onHashChange() { setRoute(window.location.hash); }
+    window.addEventListener('hashchange', onHashChange);
+    return function() { window.removeEventListener('hashchange', onHashChange); };
+  }, []);
+
+  if (route === '#dinner') return <FoodTournament />;
+  return <ScottWarrensDashboard />;
+}
+
+export default App;
